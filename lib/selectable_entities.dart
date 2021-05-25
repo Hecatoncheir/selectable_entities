@@ -18,6 +18,8 @@ class SelectableEntities<T> extends StatefulWidget {
 
   final EntitiesDecorator? _entitiesDecorator;
 
+  final String filterNameFieldText;
+
   const SelectableEntities({
     required SelectableEntitiesBloc bloc,
     required Widget Function(BuildContext, T) entityBuilder,
@@ -27,6 +29,7 @@ class SelectableEntities<T> extends StatefulWidget {
     Key? key,
     bool? withFilter,
     EntitiesDecorator? entitiesDecorator,
+    this.filterNameFieldText = "Поиск по названию",
   })  : _bloc = bloc,
         _entityBuilder = entityBuilder,
         _selectedEntityBuilder = selectedEntityBuilder,
@@ -167,8 +170,8 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
 
                       widget._bloc.eventController.add(event);
                     },
-                    decoration: const InputDecoration(
-                      hintText: 'Поиск по названию',
+                    decoration: InputDecoration(
+                      hintText: widget.filterNameFieldText,
                       isDense: true,
                       border: OutlineInputBorder(gapPadding: 0),
                       enabledBorder: OutlineInputBorder(
