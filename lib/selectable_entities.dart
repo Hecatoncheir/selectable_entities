@@ -6,7 +6,11 @@ export 'bloc/selectable_entities_bloc.dart';
 typedef EntitiesDecorator = Widget Function(BuildContext, Widget);
 
 class SelectableEntities<T> extends StatefulWidget {
-  final SelectableEntitiesBloc _bloc;
+  final String filterNameFieldText;
+  final bool isScrollbarAlwaysShown;
+  final bool withFilter;
+
+  final SelectableEntitiesBloc bloc;
 
   final Widget Function(BuildContext, T) _entityBuilder;
   final Widget Function(BuildContext, T) _selectedEntityBuilder;
@@ -14,28 +18,23 @@ class SelectableEntities<T> extends StatefulWidget {
   final Function(T, List<T>)? _onEntitySelected;
   final Function(T, List<T>)? _onEntityDeselected;
 
-  final bool _withFilter;
-
   final EntitiesDecorator? _entitiesDecorator;
 
-  final String filterNameFieldText;
-
   const SelectableEntities({
-    required SelectableEntitiesBloc bloc,
+    required this.bloc,
     required Widget Function(BuildContext, T) entityBuilder,
     required Widget Function(BuildContext, T) selectedEntityBuilder,
     Function(T, List<T>)? onEntitySelected,
     Function(T, List<T>)? onEntityDeselected,
     Key? key,
-    bool? withFilter,
+    bool this.withFilter = false,
+    bool this.isScrollbarAlwaysShown = true,
     EntitiesDecorator? entitiesDecorator,
     this.filterNameFieldText = "Поиск по названию",
-  })  : _bloc = bloc,
-        _entityBuilder = entityBuilder,
+  })  : _entityBuilder = entityBuilder,
         _selectedEntityBuilder = selectedEntityBuilder,
         _onEntitySelected = onEntitySelected,
         _onEntityDeselected = onEntityDeselected,
-        _withFilter = withFilter ?? false,
         _entitiesDecorator = entitiesDecorator,
         super(key: key);
 
@@ -61,21 +60,21 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
   @override
   Widget build(BuildContext context) {
     final checkSelectedEntitiesEvent = CheckSelectedEntities<T>();
-    widget._bloc.eventController.add(checkSelectedEntitiesEvent);
+    widget.bloc.eventController.add(checkSelectedEntitiesEvent);
 
-    if (widget._withFilter) {
+    if (widget.withFilter) {
       final entitiesFilterChangedEvent = EntitiesFilterChanged<T>(
         entitiesFilterParameters: EntitiesFilterParameters(name: ""),
       );
 
-      widget._bloc.eventController.add(entitiesFilterChangedEvent);
+      widget.bloc.eventController.add(entitiesFilterChangedEvent);
     } else {
       final excludeSelectedEntitiesFromAllEntities =
           ExcludeSelectedEntitiesFromAllEntities<T>();
-      widget._bloc.eventController.add(excludeSelectedEntitiesFromAllEntities);
+      widget.bloc.eventController.add(excludeSelectedEntitiesFromAllEntities);
     }
 
-    widget._bloc.stateStream.listen((state) {
+    widget.bloc.stateStream.listen((state) {
       if (state is EntitySelect<T>) {
         final selectedEntity = state.entity;
         final selectedEntities = state.selectedEntities;
@@ -113,24 +112,26 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
     );
   }
 
-  Widget buildSelectableEntitiesLayout(BuildContext context) {
+  Widget buildSelectableEntitiesLayout(BuildContext _) {
     return StreamBuilder<SelectableEntitiesState>(
-        stream: widget._bloc.stateStream
-            .where((state) => state is SelectedEntitiesChanged<T>),
-        builder: (context, snapshot) {
-          final state = snapshot.data;
-          if (state is SelectedEntitiesChanged<T>) {
-            final selectedEntities = state.entities;
-            return buildSelectableEntities(context, selectedEntities);
-          }
+      stream: widget.bloc.stateStream
+          .where((state) => state is SelectedEntitiesChanged<T>),
+      builder: (context, snapshot) {
+        final state = snapshot.data;
+        if (state is SelectedEntitiesChanged<T>) {
+          final selectedEntities = state.entities;
 
-          return Container();
-        });
+          return buildSelectableEntities(context, selectedEntities);
+        }
+
+        return Container();
+      },
+    );
   }
 
   Widget buildFilterLayout(
     BuildContext context,
-    EntitiesFilterParameters parameters,
+    EntitiesFilterParameters? parameters,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -139,8 +140,8 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
   }
 
   Widget buildFilter(
-    BuildContext context,
-    EntitiesFilterParameters parameters,
+    BuildContext _,
+    EntitiesFilterParameters? parameters,
   ) {
     return Form(
       child: Column(
@@ -159,16 +160,16 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
                   ),
                   child: TextFormField(
                     key: const Key("FormField-Name"),
-                    initialValue: parameters.name,
+                    initialValue: parameters?.name,
                     onChanged: (text) {
                       final filterParameters = parameters;
-                      filterParameters.name = text;
+                      filterParameters?.name = text;
 
                       final event = EntitiesFilterChanged<T>(
                         entitiesFilterParameters: filterParameters,
                       );
 
-                      widget._bloc.eventController.add(event);
+                      widget.bloc.eventController.add(event);
                     },
                     decoration: InputDecoration(
                       hintText: widget.filterNameFieldText,
@@ -191,38 +192,37 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
     );
   }
 
-  Widget buildAllEntitiesLayout(BuildContext context) {
+  Widget buildAllEntitiesLayout(BuildContext _) {
     return StreamBuilder<SelectableEntitiesState>(
-        stream: widget._bloc.stateStream
-            .where((state) => state is EntitiesChanged<T>),
-        builder: (context, snapshot) {
-          final state = snapshot.data;
+      stream:
+          widget.bloc.stateStream.where((state) => state is EntitiesChanged<T>),
+      builder: (context, snapshot) {
+        final state = snapshot.data;
 
-          if (state is EntitiesChanged<T>) {
-            final entities = state.entities;
+        if (state is EntitiesChanged<T>) {
+          final entities = state.entities;
 
-            final decorator = widget._entitiesDecorator;
+          final decorator = widget._entitiesDecorator;
 
-            if (decorator == null) {
-              return buildAllEntitiesWithFilter(
-                context,
-                state.filterParameters,
-                entities,
-              );
-            } else {
-              return decorator(
-                context,
-                buildAllEntitiesWithFilter(
+          return decorator == null
+              ? buildAllEntitiesWithFilter(
                   context,
                   state.filterParameters,
                   entities,
-                ),
-              );
-            }
-          }
+                )
+              : decorator(
+                  context,
+                  buildAllEntitiesWithFilter(
+                    context,
+                    state.filterParameters,
+                    entities,
+                  ),
+                );
+        }
 
-          return Container();
-        });
+        return Container();
+      },
+    );
   }
 
   Widget buildAllEntitiesWithFilter(
@@ -235,13 +235,16 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget._withFilter)
+        if (widget.withFilter)
           buildFilterLayout(
             context,
-            entitiesFilterParameters!,
+            entitiesFilterParameters,
           ),
         Flexible(
-          child: buildAllEntities(context, entities),
+          child: buildAllEntities(
+            context,
+            entities,
+          ),
         ),
       ],
     );
@@ -251,14 +254,16 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
     BuildContext context,
     List<T> entities,
   ) {
+    const _wrapSpacing = 6.0;
+
     return Scrollbar(
-      isAlwaysShown: entities.length < 10 ? false : true,
+      isAlwaysShown: widget.isScrollbarAlwaysShown,
       controller: _scrollController,
       interactive: true,
       child: SingleChildScrollView(
         controller: _scrollController,
         child: Wrap(
-          spacing: 6,
+          spacing: _wrapSpacing,
           children: [
             for (final entity in entities) buildEntity(context, entity),
           ],
@@ -268,36 +273,36 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
   }
 
   Widget buildEntity(BuildContext context, T entity) {
-    if (widget._onEntitySelected != null) {
-      return GestureDetector(
-        onTap: () {
-          final event = EntitySelected(entity: entity);
-          widget._bloc.eventController.add(event);
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: widget._entityBuilder(context, entity),
+    return widget._onEntitySelected != null
+        ? GestureDetector(
+            onTap: () => _selectEntity(entity: entity),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: widget._entityBuilder(
+                    context,
+                    entity,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    } else {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: widget._entityBuilder(context, entity),
-          ),
-        ],
-      );
-    }
+          )
+        : Row(mainAxisSize: MainAxisSize.min, children: [
+            Flexible(
+              child: widget._entityBuilder(
+                context,
+                entity,
+              ),
+            ),
+          ]);
   }
 
   Widget buildSelectableEntities(BuildContext context, List<T> entities) {
+    const _wrapSpacing = 6.0;
+
     return Wrap(
-      spacing: 6,
+      spacing: _wrapSpacing,
       children: [
         for (final entity in entities) buildSelectedEntity(context, entity),
       ],
@@ -305,30 +310,35 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
   }
 
   Widget buildSelectedEntity(BuildContext context, T entity) {
-    if (widget._onEntityDeselected != null) {
-      return GestureDetector(
-        onTap: () {
-          final event = EntityDeselected(entity: entity);
-          widget._bloc.eventController.add(event);
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: widget._selectedEntityBuilder(context, entity),
+    return widget._onEntityDeselected != null
+        ? GestureDetector(
+            onTap: () => _deselectEntity(entity: entity),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: widget._selectedEntityBuilder(context, entity),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    } else {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: widget._selectedEntityBuilder(context, entity),
-          ),
-        ],
-      );
-    }
+          )
+        : Row(mainAxisSize: MainAxisSize.min, children: [
+            Flexible(
+              child: widget._selectedEntityBuilder(
+                context,
+                entity,
+              ),
+            ),
+          ]);
+  }
+
+  Future<void> _selectEntity({required T entity}) async {
+    final event = EntitySelected(entity: entity);
+    widget.bloc.eventController.add(event);
+  }
+
+  Future<void> _deselectEntity({required T entity}) async {
+    final event = EntityDeselected(entity: entity);
+    widget.bloc.eventController.add(event);
   }
 }

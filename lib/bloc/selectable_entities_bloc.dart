@@ -1,21 +1,12 @@
 import 'dart:async';
-
 import 'package:pedantic/pedantic.dart';
 
 import 'package:flutter/material.dart';
 
+part 'exception_no_on_filter_change_callback_found.dart';
+part 'entities_filter_parameters.dart';
 part 'selectable_entities_event.dart';
 part 'selectable_entities_state.dart';
-
-class ExceptionNoOnFilterChangeCallbackFound implements Exception {}
-
-class EntitiesFilterParameters {
-  String name;
-
-  EntitiesFilterParameters({
-    required this.name,
-  });
-}
 
 class SelectableEntitiesBloc<T> {
   late final StreamController<SelectableEntitiesEvent> eventController;
@@ -29,7 +20,7 @@ class SelectableEntitiesBloc<T> {
   final List<T> allEntities;
   final List<T> selectedEntities;
 
-  final bool Function(EntitiesFilterParameters, T)? _onFilterChanged;
+  final bool Function(EntitiesFilterParameters?, T)? _onFilterChanged;
   EntitiesFilterParameters? _entitiesFilterParameters;
 
   List<T> _excludedSelectedEntitiesFromAllEntities;
@@ -37,7 +28,7 @@ class SelectableEntitiesBloc<T> {
   SelectableEntitiesBloc({
     required this.allEntities,
     required this.selectedEntities,
-    bool Function(EntitiesFilterParameters, T)? onFilterChange,
+    bool Function(EntitiesFilterParameters?, T)? onFilterChange,
   })  : _excludedSelectedEntitiesFromAllEntities = [],
         _onFilterChanged = onFilterChange {
     eventController = StreamController<SelectableEntitiesEvent<T>>();
@@ -69,15 +60,32 @@ class SelectableEntitiesBloc<T> {
     });
   }
 
+  void dispose() {
+    eventSubscription.cancel();
+
+    stateController.close();
+    eventController.close();
+  }
+
+  @visibleForTesting
+  Future<List<T>> excludeSelectedEntitiesFromAllEntities({
+    required List<T> allEntities,
+    required List<T> selectedEntities,
+  }) async {
+    return allEntities
+        .where((element) => !selectedEntities.contains(element))
+        .toList();
+  }
+
   Future<void> _checkSelectedEntitiesHandler(
-    CheckSelectedEntities<T> event,
+    CheckSelectedEntities<T> _,
   ) async {
     final state = SelectedEntitiesChanged<T>(entities: selectedEntities);
     stateController.add(state);
   }
 
   Future<void> _excludeSelectedEntitiesFromAllEntitiesHandler(
-    ExcludeSelectedEntitiesFromAllEntities<T> event,
+    ExcludeSelectedEntitiesFromAllEntities<T> _,
   ) async {
     _excludedSelectedEntitiesFromAllEntities =
         await excludeSelectedEntitiesFromAllEntities(
@@ -118,14 +126,21 @@ class SelectableEntitiesBloc<T> {
       selectedEntities: selectedEntities,
     );
 
-    if (_entitiesFilterParameters != null) {
-      if (_onFilterChanged == null) {
+    final _filterParameters = _entitiesFilterParameters;
+    final _onFilterChangedCallback = _onFilterChanged;
+
+    if (_filterParameters != null) {
+      if (_onFilterChangedCallback == null) {
         throw ExceptionNoOnFilterChangeCallbackFound();
       }
 
       final filteredEntities = _excludedSelectedEntitiesFromAllEntities
-          .where((element) =>
-              _onFilterChanged!(_entitiesFilterParameters!, element))
+          .where(
+            (element) => _onFilterChangedCallback(
+              _filterParameters,
+              element,
+            ),
+          )
           .toList();
 
       final state = EntitiesChanged<T>(
@@ -170,14 +185,21 @@ class SelectableEntitiesBloc<T> {
       selectedEntities: selectedEntities,
     );
 
-    if (_entitiesFilterParameters != null) {
-      if (_onFilterChanged == null) {
+    final _filterParameters = _entitiesFilterParameters;
+    final _onFilterChangedCallback = _onFilterChanged;
+
+    if (_filterParameters != null) {
+      if (_onFilterChangedCallback == null) {
         throw ExceptionNoOnFilterChangeCallbackFound();
       }
 
       final filteredEntities = _excludedSelectedEntitiesFromAllEntities
-          .where((element) =>
-              _onFilterChanged!(_entitiesFilterParameters!, element))
+          .where(
+            (element) => _onFilterChangedCallback(
+              _filterParameters,
+              element,
+            ),
+          )
           .toList();
 
       final state = EntitiesChanged<T>(
@@ -207,13 +229,18 @@ class SelectableEntitiesBloc<T> {
       selectedEntities: selectedEntities,
     );
 
-    if (_onFilterChanged == null) {
+    final _onFilterChangedCallback = _onFilterChanged;
+    if (_onFilterChangedCallback == null) {
       throw ExceptionNoOnFilterChangeCallbackFound();
     }
 
     final filteredEntities = _excludedSelectedEntitiesFromAllEntities
         .where(
-            (element) => _onFilterChanged!(_entitiesFilterParameters!, element))
+          (element) => _onFilterChangedCallback(
+            _entitiesFilterParameters,
+            element,
+          ),
+        )
         .toList();
 
     final state = EntitiesChanged<T>(
@@ -222,22 +249,5 @@ class SelectableEntitiesBloc<T> {
     );
 
     stateController.add(state);
-  }
-
-  void dispose() {
-    eventSubscription.cancel();
-
-    stateController.close();
-    eventController.close();
-  }
-
-  @visibleForTesting
-  Future<List<T>> excludeSelectedEntitiesFromAllEntities({
-    required List<T> allEntities,
-    required List<T> selectedEntities,
-  }) async {
-    return allEntities
-        .where((element) => !selectedEntities.contains(element))
-        .toList();
   }
 }

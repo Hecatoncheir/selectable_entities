@@ -146,9 +146,13 @@ void main() {
       final bloc = SelectableEntitiesBloc<Tag>(
         allEntities: tags,
         selectedEntities: [tags[1]],
-        onFilterChange: (parameters, tag) => parameters.name.isEmpty
-            ? true
-            : tag.name.toLowerCase().contains(parameters.name.toLowerCase()),
+        onFilterChange: (parameters, tag) {
+          if (parameters == null) return false;
+
+          return parameters.name.isEmpty
+              ? true
+              : tag.name.toLowerCase().contains(parameters.name.toLowerCase());
+        },
       );
 
       final filterParameters = EntitiesFilterParameters(name: "first");
@@ -171,9 +175,13 @@ void main() {
       final bloc = SelectableEntitiesBloc<Tag>(
         allEntities: tags,
         selectedEntities: [tags[1]],
-        onFilterChange: (parameters, tag) => parameters.name.isEmpty
-            ? true
-            : tag.name.toLowerCase().contains(parameters.name.toLowerCase()),
+        onFilterChange: (parameters, tag) {
+          if (parameters == null) return false;
+
+          return parameters.name.isEmpty
+              ? true
+              : tag.name.toLowerCase().contains(parameters.name.toLowerCase());
+        },
       );
 
       final filterParameters = EntitiesFilterParameters(name: "second");

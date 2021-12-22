@@ -130,7 +130,8 @@ void main() {
       expect(find.byKey(const Key("entity-id-2--selected")), findsOneWidget);
 
       expect(selectedTag, equals(tags[0]));
-      expect(selectedTags!.length, equals(2));
+      expect(selectedTags, isNotNull);
+      expect(selectedTags?.length, equals(2));
     });
 
     testWidgets("onDeselect", (tester) async {
@@ -189,16 +190,21 @@ void main() {
       expect(find.byKey(const Key("entity-id-2--selected")), findsNothing);
 
       expect(deselectedTag, equals(tags[1]));
-      expect(selectedTags!.length, equals(0));
+      expect(selectedTags, isNotNull);
+      expect(selectedTags?.length, equals(0));
     });
 
     testWidgets("onFilterChange", (tester) async {
       final bloc = SelectableEntitiesBloc<Tag>(
         allEntities: tags,
         selectedEntities: [tags[1]],
-        onFilterChange: (parameters, tag) => parameters.name.isEmpty
-            ? true
-            : tag.name.toLowerCase().contains(parameters.name.toLowerCase()),
+        onFilterChange: (parameters, tag) {
+          if (parameters == null) return false;
+
+          return parameters.name.isEmpty
+              ? true
+              : tag.name.toLowerCase().contains(parameters.name.toLowerCase());
+        },
       );
 
       final testWidget = SelectableEntities<Tag>(

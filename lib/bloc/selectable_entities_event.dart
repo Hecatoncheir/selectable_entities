@@ -18,7 +18,7 @@ class ExcludeSelectedEntitiesFromAllEntities<T>
     extends SelectableEntitiesEvent<T> {}
 
 class EntitiesFilterChanged<T> extends SelectableEntitiesEvent<T> {
-  final EntitiesFilterParameters entitiesFilterParameters;
+  final EntitiesFilterParameters? entitiesFilterParameters;
   EntitiesFilterChanged({
     required this.entitiesFilterParameters,
   });
