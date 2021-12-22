@@ -173,11 +173,11 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
                     decoration: InputDecoration(
                       hintText: widget.filterNameFieldText,
                       isDense: true,
-                      border: OutlineInputBorder(gapPadding: 0),
-                      enabledBorder: OutlineInputBorder(
+                      border: const OutlineInputBorder(gapPadding: 0),
+                      enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.transparent),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.transparent),
                       ),
                     ),
