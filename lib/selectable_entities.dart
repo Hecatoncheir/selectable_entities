@@ -6,9 +6,9 @@ export 'bloc/selectable_entities_bloc.dart';
 typedef EntitiesDecorator = Widget Function(BuildContext, Widget);
 
 class SelectableEntities<T> extends StatefulWidget {
-  final String filterNameFieldText;
   final bool isScrollbarAlwaysShown;
   final bool withFilter;
+  final InputDecoration? fieldNameDecoration;
 
   final SelectableEntitiesBloc bloc;
 
@@ -30,7 +30,7 @@ class SelectableEntities<T> extends StatefulWidget {
     bool this.withFilter = false,
     bool this.isScrollbarAlwaysShown = true,
     EntitiesDecorator? entitiesDecorator,
-    this.filterNameFieldText = "Поиск по названию",
+    this.fieldNameDecoration,
   })  : _entityBuilder = entityBuilder,
         _selectedEntityBuilder = selectedEntityBuilder,
         _onEntitySelected = onEntitySelected,
@@ -171,17 +171,19 @@ class _SelectableEntitiesState<T> extends State<SelectableEntities<T>> {
 
                       widget.bloc.eventController.add(event);
                     },
-                    decoration: InputDecoration(
-                      hintText: widget.filterNameFieldText,
-                      isDense: true,
-                      border: const OutlineInputBorder(gapPadding: 0),
-                      enabledBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.transparent),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.transparent),
-                      ),
-                    ),
+                    decoration: widget.fieldNameDecoration != null
+                        ? widget.fieldNameDecoration
+                        : InputDecoration(
+                            hintText: 'Name',
+                            isDense: true,
+                            border: const OutlineInputBorder(gapPadding: 0),
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.transparent),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.transparent),
+                            ),
+                          ),
                   ),
                 ),
               ),
